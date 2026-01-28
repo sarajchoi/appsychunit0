@@ -46,7 +46,8 @@ const FlashcardStudyApp = () => {
     { id: 'unit1-2', name: 'Unit 1-2', description: 'Biological Bases (Brain, Sleep)', fileName: 'UNIT1-2.csv' },
     { id: 'unit1-3', name: 'Unit 1-3', description: 'Biological Bases (Sensation, Senses)', fileName: 'UNIT1-3.csv' },
     { id: 'unit2', name: 'Unit 2', description: 'Cognition', fileName: 'UNIT2.csv' },
-    { id: 'unit3', name: 'Unit 3-1', description: 'Development', fileName: 'UNIT3-1.csv' },
+    { id: 'unit3-1', name: 'Unit 3-1', description: 'Development', fileName: 'UNIT3-1.csv' },
+    { id: 'unit3-2', name: 'Unit 3-2', description: 'Learning', fileName: 'UNIT3-2.csv' },
     // Add more units here as you create them:
     // { id: 'unit1', name: 'Unit 1', description: 'Research Methods', fileName: 'UNIT1.csv' },
     // { id: 'unit2', name: 'Unit 2', description: 'Biological Psychology', fileName: 'UNIT2.csv' },
