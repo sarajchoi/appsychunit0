@@ -72,8 +72,8 @@ built site cannot update its menu. Standard Netlify Git deployments running
 Whether pushes automatically deploy depends on the site's Netlify settings.
 
 Optional `unit-metadata.json` entries are keyed by filename and may provide
-`name` and/or `description`. New CSVs work without an entry. Existing Unit 0
-and Unit 1-1 descriptions are preserved; units without metadata use an inferred
+`name` and/or `description`. New CSVs work without an entry. Unit 0 and Unit 1
+have descriptions; units without metadata use an inferred
 name and no description. Remove obsolete metadata when removing a unit.
 
 Loading failures display an error on the unit selector instead of substituting
