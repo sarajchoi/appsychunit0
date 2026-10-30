@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { parseUnitCsv, validateManifest } from './unitData';
 import { ChevronLeft, ChevronRight, RotateCcw, Shuffle, Trophy, Clock, Home } from 'lucide-react';
 
 const FlashcardStudyApp = () => {
@@ -39,88 +40,48 @@ const FlashcardStudyApp = () => {
   const [findTermsClues, setfindTermsClues] = useState([]);
   const [findTermsAnswers, setfindTermsAnswers] = useState({});
 
-  // Available units - you'll add more as you create them
-  const availableUnits = [
-    { id: 'unit0', name: 'Unit 0', description: 'Scientific Methodology', fileName: 'UNIT0.csv' },
-    { id: 'unit1-1', name: 'Unit 1-1', description: 'Genes, Neurons, Brains', fileName: 'UNIT1-1.csv' },
-    // Add more units here as you create them:
-    // { id: 'unit1', name: 'Unit 1', description: 'Research Methods', fileName: 'UNIT1.csv' },
-    // { id: 'unit2', name: 'Unit 2', description: 'Biological Psychology', fileName: 'UNIT2.csv' },
-  ];
+  const [availableUnits, setAvailableUnits] = useState([]);
+  const [manifestLoading, setManifestLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
-  // Sample psychology terms - you can replace with your data
-  const defaultTerms = [
-    { id: 1, term: 'Psychology', definition: 'The scientific study of behavior and mental processes' },
-    { id: 2, term: 'Behaviorism', definition: 'A psychological approach that emphasizes the study of observable behaviors' },
-    { id: 3, term: 'Cognitive Psychology', definition: 'The study of mental processes including thinking, memory, and problem-solving' },
-    { id: 4, term: 'Neuroscience', definition: 'The study of the nervous system and brain' },
-    { id: 5, term: 'Classical Conditioning', definition: 'Learning through association, discovered by Ivan Pavlov' },
-    { id: 6, term: 'Operant Conditioning', definition: 'Learning through reinforcement and punishment' },
-    { id: 7, term: 'Gestalt Psychology', definition: 'A school emphasizing the whole of human experience' },
-    { id: 8, term: 'Psychoanalysis', definition: 'Freud\'s theory focusing on unconscious motivations' },
-    { id: 9, term: 'Humanistic Psychology', definition: 'An approach emphasizing human potential and self-actualization' },
-    { id: 10, term: 'Biological Psychology', definition: 'The study of how biological processes relate to behavior' },
-    { id: 11, term: 'Social Psychology', definition: 'The study of how social situations influence behavior' },
-    { id: 12, term: 'Developmental Psychology', definition: 'The study of how people change throughout their lives' },
-    { id: 13, term: 'Personality Psychology', definition: 'The study of individual differences in behavior patterns' },
-    { id: 14, term: 'Abnormal Psychology', definition: 'The study of psychological disorders and unusual behaviors' },
-    { id: 15, term: 'Research Methods', definition: 'Scientific techniques used to study psychological phenomena' }
-  ];
+  useEffect(() => {
+    let active = true;
+    const loadManifest = async () => {
+      try {
+        const response = await fetch(`${process.env.PUBLIC_URL}/units.json`);
+        if (!response.ok) throw new Error(`Unit manifest request failed (HTTP ${response.status}).`);
+        const units = validateManifest(await response.json());
+        if (active) setAvailableUnits(units);
+      } catch (error) {
+        if (active) setLoadError(`Could not load the unit list: ${error.message}`);
+      } finally {
+        if (active) setManifestLoading(false);
+      }
+    };
+    loadManifest();
+    return () => { active = false; };
+  }, []);
 
-  // Load terms for selected unit
   const loadUnit = async (unit) => {
     setLoading(true);
-    setCurrentUnit(unit);
-    
+    setLoadError('');
     try {
-      // Try to load CSV from public folder
-      const response = await fetch(`/${unit.fileName}`);
-      if (response.ok) {
-        const csvText = await response.text();
-        
-        // Simple CSV parsing without Papa Parse
-        const lines = csvText.split('\n');
-        const formattedCards = [];
-        
-        lines.forEach((line, index) => {
-          const columns = line.split(',');
-          if (columns.length >= 2) {
-            const term = columns[0]?.trim().replace(/['"]/g, '') || '';
-            const definition = columns[1]?.trim().replace(/['"]/g, '') || '';
-            
-            if (term && definition) {
-              formattedCards.push({
-                id: index,
-                term: term,
-                definition: definition
-              });
-            }
-          }
-        });
-        
-        if (formattedCards.length > 0) {
-          setCards(formattedCards);
-          setShuffledCards(formattedCards);
-          setCurrentMode('home');
-          setLoading(false);
-          return;
-        }
-      }
+      const response = await fetch(`${process.env.PUBLIC_URL}/${unit.fileName}`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const formattedCards = parseUnitCsv(await response.text(), unit.fileName);
+      setCards(formattedCards);
+      setShuffledCards(formattedCards);
+      setCurrentUnit(unit);
+      setCurrentCardIndex(0);
+      setShowAnswer(false);
+      setIsShuffled(false);
+      setCurrentMode('home');
     } catch (error) {
-      console.log(`Could not load ${unit.fileName}, using default terms`);
+      setLoadError(`Could not load ${unit.name}: ${error.message} Please try again after the data is corrected.`);
+    } finally {
+      setLoading(false);
     }
-    
-    // Fall back to default terms if CSV loading fails
-    setCards(defaultTerms);
-    setShuffledCards(defaultTerms);
-    setCurrentMode('home');
-    setLoading(false);
   };
-
-  // Initialize app - no auto-loading, wait for unit selection
-  useEffect(() => {
-    // App starts on unit selector screen
-  }, []);
 
   // Timer for matching game
   useEffect(() => {
@@ -326,7 +287,8 @@ if (currentScrambleIndex === scrambleWords.length - 1) {
           <p className="text-lg text-gray-600">Choose a unit to start studying</p>
         </div>
 
-        {loading ? (
+        {loadError && <p role="alert" className="mb-6 text-red-700">{loadError}</p>}
+        {manifestLoading || loading ? (
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Loading unit...</p>

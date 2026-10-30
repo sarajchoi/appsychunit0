@@ -18,7 +18,11 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "generate:units": "node scripts/generate-units.js",
+    "prestart": "npm run generate:units",
+    "prebuild": "npm run generate:units",
+    "test:units": "node --test scripts/units.test.js"
   },
   "eslintConfig": {
     "extends": [
