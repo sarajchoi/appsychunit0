@@ -11,11 +11,6 @@ An interactive flashcard study app designed for psychology students to master Un
 - **CSV Import/Export**: Load custom term sets and export progress
 - **Secure Login**: Protected access with authentication
 
-## Login Credentials
-
-- **Username**: `APPSYCH2025`
-- **Password**: `IVANPAVLOV`
-
 ## Installation
 
 1. Clone the repository:
