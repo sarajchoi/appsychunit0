@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { UNIT_FILE, parseUnitCsv, validateManifest } = require('../src/unitData');
+const { unitFromFilename, parseUnitCsv, validateManifest } = require('../src/unitData');
 
 function discoverUnits(publicDir, metadata = {}) {
   if (!metadata || Array.isArray(metadata) || typeof metadata !== 'object') {
@@ -8,19 +8,28 @@ function discoverUnits(publicDir, metadata = {}) {
   }
   const files = fs.readdirSync(publicDir, { withFileTypes: true })
     .filter(entry => entry.isFile()).map(entry => entry.name);
-  for (const file of files) {
-    if (/^unit.*\.csv$/i.test(file) && !UNIT_FILE.test(file)) {
-      throw new Error(`Unrecognized unit filename: ${file}. Use UNIT1.csv or UNIT1-1.csv (no leading zeros).`);
+  const seen = new Map();
+  const units = files.sort().flatMap(fileName => {
+    const unit = unitFromFilename(fileName);
+    if (!unit) {
+      if (/^unit.*\.csv$/i.test(fileName)) {
+        throw new Error(`Unrecognized unit filename: ${fileName}. Use a numbered name such as UNIT2.csv, UNIT2.5.csv, or UNIT2-5.csv.`);
+      }
+      return [];
     }
-  }
-  const units = files.filter(file => UNIT_FILE.test(file)).sort((a, b) => {
-    const left = a.slice(4, -4).split('-').map(BigInt);
-    const right = b.slice(4, -4).split('-').map(BigInt);
-    for (let i = 0; i < Math.min(left.length, right.length); i++) {
-      if (left[i] !== right[i]) return left[i] < right[i] ? -1 : 1;
+    if (seen.has(unit.id)) {
+      throw new Error(`Duplicate unit: "${seen.get(unit.id)}" and "${fileName}" both identify ${unit.id}. Keep only the intended file.`);
     }
-    return left.length - right.length;
-  }).map(fileName => {
+    seen.set(unit.id, fileName);
+    return [{ fileName, ...unit }];
+  }).sort((a, b) => {
+    for (let i = 0; i < Math.min(a.segments.length, b.segments.length); i++) {
+      const left = BigInt(a.segments[i]);
+      const right = BigInt(b.segments[i]);
+      if (left !== right) return left < right ? -1 : 1;
+    }
+    return a.segments.length - b.segments.length;
+  }).map(({ fileName, id, name }) => {
     parseUnitCsv(fs.readFileSync(path.join(publicDir, fileName), 'utf8'), fileName);
     const extra = metadata[fileName] || {};
     if (typeof extra !== 'object' || Array.isArray(extra) ||
@@ -28,8 +37,8 @@ function discoverUnits(publicDir, metadata = {}) {
       throw new Error(`Invalid metadata for ${fileName}: only name and description are supported.`);
     }
     return {
-      id: fileName.slice(0, -4).toLowerCase(),
-      name: `Unit ${fileName.slice(4, -4)}`,
+      id,
+      name,
       description: '',
       ...extra,
       fileName

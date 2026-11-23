@@ -66,7 +66,7 @@ const FlashcardStudyApp = () => {
     setLoading(true);
     setLoadError('');
     try {
-      const response = await fetch(`${process.env.PUBLIC_URL}/${unit.fileName}`);
+      const response = await fetch(`${process.env.PUBLIC_URL}/${encodeURIComponent(unit.fileName)}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const formattedCards = parseUnitCsv(await response.text(), unit.fileName);
       setCards(formattedCards);

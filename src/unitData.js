@@ -1,5 +1,14 @@
 const Papa = require('papaparse');
-const UNIT_FILE = /^UNIT(0|[1-9]\d*)(?:-(0|[1-9]\d*))*\.csv$/;
+const UNIT_FILE = /^unit *(\d+(?: *[.-] *\d+)*)\.csv$/i;
+
+function unitFromFilename(fileName) {
+  const match = UNIT_FILE.exec(fileName);
+  if (!match || match[0] !== fileName) return null;
+  const number = match[1].replace(/ /g, '').replace(/\d+/g, digits =>
+    digits.replace(/^0+(?=\d)/, ''));
+  const segments = number.split(/[.-]/);
+  return { id: 'unit' + segments.join('-'), name: 'Unit ' + number, segments };
+}
 
 function parseUnitCsv(text, fileName = 'CSV') {
   const result = Papa.parse(text, { delimiter: ',', skipEmptyLines: 'greedy' });
@@ -21,8 +30,8 @@ function parseUnitCsv(text, fileName = 'CSV') {
 
 function validateManifest(units) {
   if (!Array.isArray(units) || !units.length || units.some(unit =>
-    !unit || !UNIT_FILE.test(unit.fileName) ||
-    unit.id !== unit.fileName.slice(0, -4).toLowerCase() ||
+    typeof unit?.fileName !== 'string' || typeof unit.id !== 'string' ||
+    unit.id !== unitFromFilename(unit.fileName)?.id ||
     typeof unit.name !== 'string' || !unit.name.trim() ||
     typeof unit.description !== 'string') ||
     new Set(units.map(unit => unit.id)).size !== units.length) {
@@ -31,4 +40,4 @@ function validateManifest(units) {
   return units;
 }
 
-module.exports = { UNIT_FILE, parseUnitCsv, validateManifest };
+module.exports = { unitFromFilename, parseUnitCsv, validateManifest };

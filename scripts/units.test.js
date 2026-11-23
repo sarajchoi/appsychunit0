@@ -21,10 +21,30 @@ test('discovers new units without metadata, sorts numeric segments, ignores unre
 });
 
 test('rejects mistyped unit filenames and empty discovery', t => {
-  for (const name of ['unit1.csv', 'UNIT01.csv', 'UNIT1-a.csv', 'UNIT2.CSV']) {
+  for (const name of ['UNIT1-a.csv', 'UNIT2..5.csv', 'UNIT2-.csv']) {
     assert.throws(() => discoverUnits(fixture(t, { [name]: 'a,b' })), /Unrecognized/);
   }
   assert.throws(() => discoverUnits(fixture(t, { 'notes.csv': 'a,b' })), /empty unit manifest/);
+});
+
+test('normalizes unit IDs without changing uploaded filenames or dotted display names', t => {
+  const dir = fixture(t, {
+    'UNIT2.5.csv': 'a,b', 'Unit 02 - 03.CSV': 'a,b', 'unit02-10.csv': 'a,b',
+    'UNIT2.csv': 'a,b'
+  });
+  const units = discoverUnits(dir);
+  assert.deepEqual(units.map(({ id, name, fileName }) => [id, name, fileName]), [
+    ['unit2', 'Unit 2', 'UNIT2.csv'],
+    ['unit2-3', 'Unit 2-3', 'Unit 02 - 03.CSV'],
+    ['unit2-5', 'Unit 2.5', 'UNIT2.5.csv'],
+    ['unit2-10', 'Unit 2-10', 'unit02-10.csv']
+  ]);
+  assert.ok(fs.existsSync(path.join(dir, 'UNIT2.5.csv')));
+});
+
+test('rejects aliases of the same unit and names both files', t => {
+  const dir = fixture(t, { 'UNIT2.5.csv': 'a,b', 'UNIT2-5.csv': 'c,d' });
+  assert.throws(() => discoverUnits(dir), /UNIT2-5\.csv.*UNIT2\.5\.csv.*unit2-5/);
 });
 
 test('validates CSVs and metadata during discovery', t => {
@@ -47,7 +67,7 @@ test('rejects malformed, empty and non-two-column data instead of dropping recor
 });
 
 test('rejects invalid manifest shapes and duplicate units', () => {
-  for (const manifest of [{}, [], [{ fileName: '../secret' }]]) assert.throws(() => validateManifest(manifest), /manifest/);
+  for (const manifest of [{}, [], [{ name: 'Invalid', description: '', fileName: '../secret' }]]) assert.throws(() => validateManifest(manifest), /manifest/);
   const unit = { id: 'unit1', name: 'Unit 1', description: '', fileName: 'UNIT1.csv' };
   assert.throws(() => validateManifest([unit, unit]), /manifest/);
 });
