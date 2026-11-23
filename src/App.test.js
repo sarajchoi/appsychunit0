@@ -17,6 +17,17 @@ test('loads discovered unit and preserves its complete definition in study list'
   expect(screen.getByText('Genes, family and traits')).toBeInTheDocument();
 });
 
+test('fetches the original uploaded filename for a normalized unit ID', async () => {
+  const upload = { id: 'unit2-5', name: 'Unit 2.5', description: '', fileName: 'Unit 2.5.CSV' };
+  global.fetch = jest.fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => [upload] })
+    .mockResolvedValueOnce({ ok: true, text: async () => 'Perception,Definition' });
+  render(<App />);
+  fireEvent.click(await screen.findByText('Unit 2.5'));
+  expect(await screen.findByText('1 terms loaded')).toBeInTheDocument();
+  expect(global.fetch).toHaveBeenLastCalledWith(`${process.env.PUBLIC_URL}/Unit%202.5.CSV`);
+});
+
 test('shows CSV errors and lets the reader retry without sample cards', async () => {
   global.fetch = jest.fn()
     .mockResolvedValueOnce({ ok: true, json: async () => [unit] })

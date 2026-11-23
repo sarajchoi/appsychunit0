@@ -42,11 +42,12 @@ npm start
 
 ### Adding or updating units
 
-Put UTF-8 CSV files directly in `public/`, named `UNIT0.csv`, `UNIT1.csv`,
-`UNIT1-1.csv`, `UNIT2.csv`, etc. Use uppercase `UNIT`, lowercase `.csv`,
-and numeric segments without leading zeros. Units sort numerically (Unit 2
-before Unit 10; Unit 1 before Unit 1-1). Other files are ignored; unit-like
-CSV filenames with invalid spelling fail the build with a clear error.
+Put UTF-8 CSV files directly in `public/`. Names like `UNIT2.csv`,
+`UNIT2.5.csv`, `UNIT2-5.csv`, and `Unit 2.5.CSV` work without renaming.
+The app sorts by the numeric parts and displays the uploaded numbering
+(e.g. “Unit 2.5”). Dots and hyphens identify the same unit: if you upload
+both `UNIT2.5.csv` and `UNIT2-5.csv`, the build flags the conflict rather
+than guessing which file to use. Files that don't look like unit CSVs are ignored.
 
 Each nonblank CSV record must have exactly two nonempty columns: term and
 definition. An optional first row `Term,Definition` is recognized as a header.
